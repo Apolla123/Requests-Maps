@@ -1,33 +1,47 @@
 import requests
 
 
+# Максимальное время ожидания ответа от сервера (в секундах)
+REQUEST_TIMEOUT = 10
 api_key = API_KEY
-
+cities = []
 
 def find(api_key, cityes):
     min = 9999999
     result = ''
     res = []
+
     for city in cityes.split(', '):
         geocoder_request = f"http://geocode-maps.yandex.ru/1.x/?apikey={api_key}&geocode={city}&format=json"
-        response = requests.get(geocoder_request)
-        if response:
-            json_response = response.json()
-            toponym = (json_response["response"]
-                                    ["GeoObjectCollection"]['metaDataProperty']['GeocoderResponseMetaData']['results'])
-            toponym_coodrinates = toponym['featureMember'][0]['GeoObject']["Point"]["pos"]
-            res.append((toponym_coodrinates.split(' ')[1], city))
-        else:
-            print("Ошибка выполнения запроса:")
-            print(geocoder_request)
-            print("Http статус:", response.status_code, "(", response.reason, ")")
+
+        try:
+            response = requests.get(geocoder_request, timeout=REQUEST_TIMEOUT)
+            if response:
+                json_response = response.json()
+                toponym = (json_response["response"]
+                                        ["GeoObjectCollection"]['metaDataProperty']['GeocoderResponseMetaData']['results'])
+                toponym_coodrinates = toponym['featureMember'][0]['GeoObject']["Point"]["pos"]
+                res.append((toponym_coodrinates.split(' ')[1], city))
+            else:
+                print("Ошибка выполнения запроса:")
+                print(geocoder_request)
+                print("Http статус:", response.status_code, "(", response.reason, ")")
+
+        except requests.exceptions.Timeout:
+            return f"Превышено время ожидания при поиске города: {city}"
+
+        except requests.exceptions.RequestException as error:
+            return f"Ошибка HTTP-запроса для города {city}: {error}"
+
+        except (ValueError, KeyError, TypeError) as error:
+            return f"Ошибка обработки ответа для города {city}: {error}"
 
     for param in res:
         if param[0] < min:
             min = param[0]
             result = param[1]
 
-    print(result)
+    return result
 
 
-find(api_key, "Москова, Санкт-Петербург, Йошкар-Ола, Волгоград, Новосибирск, Нижний Новгород")
+print(find(api_key, cities))
