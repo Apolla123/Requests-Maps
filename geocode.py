@@ -5,8 +5,10 @@ def geocode(toponym_to_find):
         "apikey": API_KEY,
         "geocode": toponym_to_find,
         "format": "json"}
+    # Максимальное время ожидания ответа.
+    REQUEST_TIMEOUT = 10
 
-    response = requests.get(geocoder_api_server, params=geocoder_params)
+    response = requests.get(geocoder_api_server, params=geocoder_params, timeout=REQUEST_TIMEOUT)
 
     if not response:
         print("Ошибка выполнения запроса ", response.url)
